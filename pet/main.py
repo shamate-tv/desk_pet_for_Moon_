@@ -3,7 +3,7 @@
 
   打字 -> 手绕腕关节按下(并带动身体轻微下压), 空闲 -> 随机眨眼, 鼠标点击 -> 一次轻微点头。
 
-素材: assets/sprite.png / hand.png / lid.png   (由 tools/step*.py 生成)
+素材: assets/base.png(底图) / hand.png(手) / lid.png(眼皮)   (由 tools/step*.py 生成)
 运行: python pet/main.py            正常启动
       python pet/main.py --demo     演示模式(自动模拟打字, 不用真的敲键盘)
       python pet/main.py --selftest build/selftest.png   离屏渲染各状态, 用于验收
@@ -143,7 +143,9 @@ class Pet(QWidget):
     # ---------------------------------------------------------------- 素材
     def _load_assets(self):
         p = lambda n: os.path.join(ASSETS, n)
-        self.pm_base = QPixmap(p("sprite.png"))
+        # 底图必须用 base.png(手背后已补洞), 不能用 sprite.png(原图, 手还在里面):
+        # 手绕腕旋转时会让开一部分原来的位置, 用 sprite 打底就会露出原手的重影。
+        self.pm_base = QPixmap(p("base.png"))
         hand = QPixmap(p("hand.png"))
         self.pm_lid = QPixmap(p("lid.png"))
         if self.pm_base.isNull() or hand.isNull() or self.pm_lid.isNull():

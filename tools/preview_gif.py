@@ -20,7 +20,8 @@ def load(name):
 
 
 def main():
-    sprite, hand, lid = load("sprite.png"), load("hand.png"), load("lid.png")
+    # 底图用 base.png(手背后补过洞), 否则手的原位置会留重影
+    sprite, hand, lid = load("base.png"), load("hand.png"), load("lid.png")
     hb = hand.crop(HAND_BOX)
     lb = lid.crop(LID_BOX)
     w, h = sprite.size

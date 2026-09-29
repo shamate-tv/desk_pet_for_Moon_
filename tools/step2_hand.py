@@ -15,7 +15,7 @@ from PIL import Image
 SPRITE = os.path.join("assets", "sprite.png")
 BOX = (170, 900, 512, 1105)      # 手部裁剪框
 PIVOT = (470, 1030)              # 腕关节(全图坐标) —— 旋转轴
-FADE_X0, FADE_X1 = 466, 502      # 全图坐标: 手的 alpha 从这里开始渐隐, 让位给袖子
+FADE_X0, FADE_X1 = 478, 506      # 全图坐标: 必须对齐 base 的补洞边界(478), 否则静止时腕部会出现接缝
 
 
 def hand_mask(crop_rgb):
