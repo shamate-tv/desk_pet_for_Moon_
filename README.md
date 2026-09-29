@@ -1,15 +1,16 @@
 # Moon 桌宠（Bongo Cat 式打字反馈）
 
-**当前版本 v1.0.2** · [更新日志](CHANGELOG.md) · [下载](https://github.com/shamate-tv/desk_pet_for_Moon_/releases)（取 Releases 里的 `MoonPet-v1.0.2.exe`）
+**当前版本 v2.0.0**（Bongo Cat 版） · [更新日志](CHANGELOG.md) · [下载](https://github.com/shamate-tv/desk_pet_for_Moon_/releases)（取 Releases 里的 `MoonPet-v2.0.0.exe`）
 
-一张 OC 插画 → 桌面宠物：**你敲键盘，她的手就按在笔记本键盘上**（绕腕关节下压 + 全身微微下沉），
-空闲时会随机眨眼，鼠标点击会点头，鼠标穿透/拖动/托盘菜单齐全。
+一张 OC 插画 → Bongo Cat 式桌宠：**你敲键盘，她就躲在桌子后面左右爪交替拍桌子**，
+整个人跟着往下一沉；空闲时随机眨眼，鼠标点击双爪同砸，鼠标穿透/拖动/托盘菜单齐全。
 
 ![打字效果](preview/typing.gif)
 
-*静态分帧见 `preview/typing.jpg`，五个状态并排见 `preview/states.jpg`*
+*静态分帧见 `preview/typing.jpg`（含眨眼那帧），五个状态并排见 `preview/states.jpg`，
+爪子下砸时的补洞检查见 `preview/paw-dive.jpg`，睁眼/闭眼对比见 `preview/blink.png`*
 
-真实桌面上的样子（透明背景，直接压在编辑器/壁纸上）：
+真实桌面上的样子（透明背景，直接压在编辑器上）：
 
 ![桌面上运行](preview/desktop.jpg)
 
@@ -43,87 +44,113 @@ python pet\main.py --demo   :: 演示模式, 自动模拟打字(不用真的敲)
 
 ## 动作是怎么做出来的
 
-原画里她的手**已经贴在键盘上**，所以没有按"抬起→砸下"的经典 Bongo Cat 做法，而是：
+原画是 Bongo Cat 的标准构图：**角色躲在桌子后面，只露出头和两只白手套爪**，前面是键盘与鼠标垫。
+所以动画是经典的两件事：
 
-- **按键 = 绕腕关节旋转 2.0°**（`PIVOT = (470, 1030)` 手腕处），指尖位移约 9px，手腕几乎不动
-  → 袖口处不会撕裂；
-- **底图必须用 `base.png`（手背后补过洞的那张），不能用原图 `sprite.png`。** 旋转会让开手原本占的一部分
-  位置（腕部指尖不动的代价是掌背/指根会移位），用原图打底就会在原地留下一只"透明的手"重影。
-  同理手层的 alpha 必须正好从补洞边界（x=478）才开始渐隐，否则静止时腕部会出现接缝。
-- 同时全身以底边为锚点纵向压缩 0.26% 做打击感；
-- 按下快（`ATTACK=26`）、回弹慢（`RELEASE=13`），并保证极短促的敲击也有 85ms 的可见动作（`KEY_PULSE`）；
-- 打字越快，"热度"越高，下压幅度越大（`heat`）；
-- 眨眼是把眼皮补丁盖在眼睛上（45ms 闭合 / 40ms 保持 / 75ms 睁开），随机 2.6~6.5s 一次，打字越快眨得越频；
-- 手部旋转是**预渲染**成 51 张缓存（−1.0°~+4.0°，步长 0.1°），运行时只做贴图，CPU 占用极低。
+- **爪子悬空 + 砸下**：打字时两只爪子**抬离桌面约 30px 悬着**，敲键时右爪砸向那个键、点击时左爪砸下，
+  砸到桌面的瞬间纵向压扁 16%、横向撑开 8%；停手 1.5 秒后爪子落回桌面。
+- **右手敲键盘**：每敲一个键，**右爪**滑到键盘上那个键的位置再砸下去
+  （键位表 `KEY_LAYOUT`，坐标由 `KEY_ORIGIN/KEY_R/KEY_C` 定义的键盘网格算出）。
+- **左手扶鼠标**：**左爪**在鼠标垫上跟着鼠标在屏幕上的位置滑动；
+  鼠标点击时左爪按下去（`MOUSE_DX/MOUSE_DY` 控制跟随范围）。
+- **整个人跟着一沉**：把整幅图**以底边为锚纵向压缩 2%**——
+  锚点在底部，所以桌子几乎不动、头肩明显下沉，这就是 Bongo Cat 的弹跳感。
+  这个做法不需要把身体和桌子切成两层，也就**没有任何补洞**。
+- **眨眼**：直接用原画的线宽把眼睛画成两条短线（`eyes_closed.png`），
+  45ms 闭 / 40ms 停 / 75ms 睁，随机 2.6~6.5s 一次，打字越快眨得越频。
+- 手部/爪部都是**预渲染**好的小图，运行时只做贴图与缩放，CPU 占用极低。
+
+> 爪子只做**向下**砸，不做抬爪：向下只会多盖住；抬起来会露出键盘按键那种补不出来的细节。
+> 爪子周围全是交错的粗描边，inpaint / 最近邻填充都会糊成灰带，最后用的是
+> "逐列向上跳过描边、取第一块平涂色再往下抹"——因为只有下砸让开的那几像素会被看到。
 
 ## 文件结构
 
 ```
-art/base.jpg            原图(768x1123)
-assets/sprite.png       抠好像的全图(角色+帽子羽毛+椅子+桌子+笔记本)
-assets/hand.png         打字的手(腕部 alpha 渐隐, 便于旋转)
-assets/base.png         底图: 手背后已补洞(旋转时用它打底, 详见下文"动作是怎么做出来的")
-assets/lid.png          闭眼眼皮补丁
-pet/main.py             桌宠主程序
-pet.ico                 exe / 托盘图标(由 tools/make_icon.py 生成)
-tools/step1_matte.py    整图抠像
-tools/step2_hand.py     切手 + 补洞
-tools/step3_eye.py      眨眼层
-tools/preview_gif.py    离线渲染动图(不依赖 Qt)
-tools/make_icon.py      从 sprite.png 生成 pet.ico
-tools/make_preview.py   从 build/ 导出 README 用的 preview/ 图
-tools/build_exe.bat     一键重新打包 exe
-preview/                仓库用预览图(README 引用这些)
-release/MoonPet.exe     打包好的成品
-build/                  中间产物 + 全部调试图(.gitignore 忽略, 不进仓库)
+art/BongoCatOC.jpg        这一版用的原图(AI 生成)
+art/BongoCatOC抠图.png     去背后的版本(古法抠图, 素材流水线的输入)
+art/base.jpg              上一版(半身像)的原图
+assets/                   这一版(Bongo)的素材
+  base.png                底图: 两只爪子已挖掉并补好
+  paw_l.png / paw_r.png   左手套爪 / 右手套爪
+  eyes_closed.png         闭眼补丁
+assets_halfbody/          上一版(半身像)的素材, 配合 pet/halfbody.py 使用
+pet/main.py               Bongo 版主程序(默认)
+pet/halfbody.py           上一版半身像主程序(仍可运行)
+pet.ico                   exe / 托盘图标(tools/make_icon.py 生成)
+tools/bongo_cut.py        Bongo 版素材流水线(原图 -> 四个图层)
+tools/preview_bongo.py    离线渲染动图(不依赖 Qt)
+tools/step1_matte.py      上一版: 整图抠像
+tools/step2_hand.py       上一版: 切手 + 补洞
+tools/step3_eye.py        上一版: 眨眼层
+tools/make_icon.py        生成 pet.ico
+tools/make_version_file.py 读 VERSION 生成 exe 版本资源
+tools/make_preview.py     从 build/ 导出 README 用的 preview/ 图
+tools/build_exe.bat       一键重新打包 exe
+preview/                  仓库用预览图(README 引用这些)
+release/MoonPet-v*.exe    打包好的成品
+build/                    中间产物 + 全部调试图(.gitignore 忽略)
 ```
 
 ## 素材流水线
 
 ```bat
-python tools\step1_matte.py     :: -> assets/sprite.png + build/review_matte.png
-python tools\step2_hand.py      :: -> assets/hand.png / base.png + build/review_rotate.png
-python tools\step3_eye.py       :: -> assets/lid.png + build/review_lid.png
-python tools\preview_gif.py     :: -> build/preview.gif + build/preview_sheet.png
-python pet\main.py --selftest build\selftest.png   :: 离屏渲染各状态
-python tools\make_preview.py    :: 把上面这些导出/压缩成 preview/ 里的 README 用图
+python toolsongo_bg.py       :: 画师分好的图层 -> assets/bg.png(场景板) + assets/paw_l.png
+python toolsongo_keys.py     :: 键帽检测 + 单应拟合 -> assets/keys.json(50 个键位)
+python toolsongo_cut.py      :: (备用)从整图自动切图层
+python tools\preview_bongo.py  :: -> build/preview_bongo.gif + 分帧图
+python pet\main.py --selftest build\selftest_bongo.png   :: 离屏渲染各状态
+python tools\make_preview.py   :: 把上面这些导出/压缩成 preview/ 里的 README 用图
+toolsuild_exe.bat            :: 重新打包 exe
 ```
 
-几个关键实现点（换图时照着改就行）：
+（上一版的流水线 `step1_matte.py / step2_hand.py / step3_eye.py` 仍然保留，配合 `pet/halfbody.py` 用。）
 
-1. **抠像**靠三层：手工多边形硬约束 + 亮墙硬种子 + GrabCut 吸附边缘。黑色西装配深色椅子
-   根本分不开，所以**椅子当场景道具保留**，只抠掉左上/右上那片亮墙。
-2. **帽子羽毛**一半是白色，和亮墙同色，GrabCut 无解 —— 单用「比局部背景暗 / 高饱和紫」
-   找它的描边，取连通域后填内部孔洞，再用 `FEATHER_HULL` 限制作用范围。
-3. **切手**用色差而不是颜色：皮肤偏暖（`R−B>8`）、笔记本机身偏冷（`R−B<−6`）、
-   袖子/指甲是高饱和紫（`R−B<−20 & S>45`），据此播种 GrabCut，比盲猜稳得多。
-4. 半透明边缘做了**去白边**（按背景色反解），所以放在深色壁纸上也没有白色描边。
+### 键位校准（`--keydebug`）
+
+键位表是从原画的键盘上量出来的，如果换图或觉得对不准，用调试模式肉眼核对：
+
+```bat
+python pet\main.py --keydebug
+release\MoonPet-v2.0.0.exe --keydebug
+```
+
+它会把每个键位画成十字并标上字母，压在键盘上。偏了只改 `tools/bongo_keys.py` 里的
+`SHIFT` 一个常量后重跑 `python toolsongo_keys.py`：
+
+```
+右 1 键 = (+49.5, +10.5)     左 1 键 = (-49.5, -10.5)
+下 1 行 = (  -9,   +45)      上 1 行 = (   +9,   -45)     半个键取一半
+```
 
 ### 换成你自己的图
 
-改 `tools/step1_matte.py` 里的 `KEEP_POLY`（保留区域轮廓，顺时针）→ 跑 step1；
-改 `tools/step2_hand.py` 里的 `BOX`（手部框）和 `PIVOT`（腕关节）→ 跑 step2；
-改 `tools/step3_eye.py` 里的 `BOX` / `EYE_POLY` / `NEW_LASH` → 跑 step3。
-每步都会往 `build/` 输出审核图，对照着调坐标即可。
+1. 把去背后的图放到 `art/`，改 `tools/bongo_cut.py` 顶部的 `SRC`、`PAW_BOX`（两只爪子的包围盒）。
+2. 跑 `python toolsongo_cut.py`，看 `build/review_bongo.png`（左=静止 / 右=双爪砸到底）
+   和 `build/review_bongo_eyes.png`（睁眼/闭眼）。
+3. 描边断裂导致爪子分割不出来时，用 `PAW_POLY` 手描外轮廓；眼睛识别失败时检查 `find_eyes` 的阈值。
 
 ## 调参速查（`pet/main.py` 顶部）
 
 | 常量 | 默认 | 作用 |
 |---|---|---|
-| `PRESS_ANGLE` | 2.0 | 按键时手的旋转角（度）。调大更夸张，但会露出的补洞区也更宽（见"已知限制"） |
-| `ATTACK` / `RELEASE` | 26 / 13 | 下压 / 回弹速度，越大越干脆 |
-| `KEY_PULSE` | 0.085 | 保证极快敲击也有可见动作的时间 |
-| `BODY_SQUASH` | 0.0026 | 打击感（全身纵向压缩比例） |
+| `LIFT_PX` | 30.0 | 抬爪高度（原图像素）——打字时爪子悬空的高度 |
+| `HOVER_KEEP` | 1.5 | 停手多久后爪子落回桌面（秒） |
+| `PAW_SQUASH` / `PAW_WIDEN` | 0.16 / 0.08 | 砸下去时的压扁 / 撑开比例 |
+| `FOLLOW_K` | 70 | 爪子滑向目标的弹簧刚度（越大跟得越紧） |
+| `KEY_ORIGIN/KEY_R/KEY_C` | — | 键盘网格：`1` 键的位置 + 每列 / 每行的位移 |
+| `BODY_SQUASH` | 0.020 | 整体下沉幅度（2%）。这是"弹跳感"的主要来源 |
+| `K_HIT` / `C_HIT` | 900 / 40 | 爪子弹簧的刚度 / 阻尼，越大越干脆 |
+| `IMPULSE` | 9.0 | 每次敲击给爪子的冲量 |
 | `BLINK_*` | 0.05/0.04/0.075 | 眨眼三段时间 |
-| `ANG_MIN/ANG_STEP/ANG_N` | −1.0/0.1/51 | 手部旋转预渲染范围（要抬手动作用负角度） |
 
 ## 打包成 exe
 
-`release\MoonPet-v1.0.2.exe`（单文件，53 MB，绿色免安装，目标机器不需要 Python）。
+`release\MoonPet-v2.0.0.exe`（单文件，绿色免安装，目标机器不需要 Python）。
 双击即用；首次启动要解包到临时目录，约 3~6 秒才出现。
 
 **版本号只有一个来源**：`pet/main.py` 顶部的 `VERSION`。打包脚本会读它，自动写进
-exe 的 Windows 属性（右键→属性→详细信息能看到 1.0.2）、并命名成 `MoonPet-v1.0.2.exe`。
+exe 的 Windows 属性（右键→属性→详细信息能看到版本号）、并命名成 `MoonPet-v2.0.0.exe`。
 发新版时改那一行 + 在 `CHANGELOG.md` 加一段即可。
 
 重新打包：
@@ -145,38 +172,31 @@ tools\build_exe.bat
 
 | 文件 | 看什么 |
 |---|---|
-| `typing.gif` | 打字动图（README 首图） |
-| `typing.jpg` | 同一段的 6 帧静图 |
-| `states.jpg` | 五个状态并排：静息 / 1.0° / 2.0° / 3.0° / 闭眼 |
-| `hand-rotate.jpg` | 手腕旋转 0°/2°/4° 的接缝 |
-| `blink.png` | 睁眼 / 闭眼对比（4 倍放大 + 实际尺寸） |
-| `matte.jpg` | 抠像轮廓（棋盘底 + 红线） |
+| `typing.gif` | 打字动图（README 首图）：左右爪交替砸 + 整体下沉 |
+| `typing.jpg` | 同一段的 6 帧静图（最后一帧是眨眼） |
+| `states.jpg` | 五个状态并排：静息 / 左爪 / 左爪到底 / 右爪 / 双爪+眨眼 |
+| `paw-dive.jpg` | 爪子砸到底时的补洞检查（左=静止 右=砸到底） |
+| `blink.png` | 睁眼 / 闭眼对比 |
 | `desktop.jpg` | 真实桌面实拍 |
 
-`build/` 是**中间产物 + 全部调试图**（`zoom_*.png`、PyInstaller 工作目录、日志等），
-已在 `.gitignore` 里忽略，不进仓库。跑完流水线后想更新 `preview/` 就执行：
+`build/` 是**中间产物 + 全部调试图**（`review_*.png`、PyInstaller 工作目录、日志等），
+已在 `.gitignore` 里忽略，不进仓库。想更新 `preview/` 就跑：
 
 ```bat
-python tools\make_preview.py     :: 从 build/ 导出预览图到 preview/
+python tools\make_preview.py
 ```
-
-> 想自己看图：`build/selftest.png`（离屏渲染各状态）、`build/review_*.png`（各步骤验收图）、
-> `build/zoom_corner.png`（帽子羽毛边界）。
 
 ## 已知限制
 
-- **只有一个姿势，且旋转会露出补洞区**。手绕腕转时指尖抬起约 9px，手下方会让出一条平均 5~6px 的带子，
-  那是 `base.png` 的补洞区（inpaint），放大看比原画糊，且没有键盘按键的细节——所以 `PRESS_ANGLE` 别调太大。
-  补洞采样时**必须把腕部保留区排除掉**，否则整块洞会被染成肉色、形状又是手形，看起来就像"底下还留着一只手"。
-- **闭眼是程序合成的**，不是原画 —— 放大看睫毛线不如原画手绘自然，但桌宠默认 55% 缩放下约 35px 宽，够用。
-- **瞳孔没有跟随鼠标**：这只眼睛大部分是虹膜、没多少眼白，移动虹膜看起来会像整只眼在飘，不值得做。
-- 托腮那只手不动（动了容易穿帮）。
-- 全屏游戏/反作弊程序可能会屏蔽 pynput 的全局钩子，此时按键没反应。
+- **爪子砸下去时，上缘会让开几像素**，那几像素是程序补的（原画没画）。
+  补法见上文，正常缩放下看不出来，但把 `DIVE_PX` 调太大就会露馅。
+- **只有一张原画**，所以没有"爪子抬起"的姿势；只有下砸、眨眼两种变化。
+- 全屏游戏/反作弊程序可能会屏蔽 pynput 的全局钩子，此时打字没反应
+  （解决办法是 HID 直读，见下）。
 
 ## 下一步可以做什么
 
-1. **分指独立敲击**：把手层再拆成「手指群 / 手掌」，只让手指做局部网格形变，并让不同键位对应不同手指；
-2. **HID 直读模式**：绕开全局钩子，`hid` 库直接读键盘原始报文，全屏游戏里也能触发（Bongo Cat Mver 同款思路）；
-3. **打包**：`pyinstaller --noconsole --add-data "assets;assets" pet/main.py`，配 `--icon`；
-4. **音效**：敲击时叠一个很轻的机械键盘声，音量跟随打字速度；
-5. **彩蛋**：右下角那杯红酒 —— 连敲太久液面晃一下 / 她喝一口。
+1. **HID 直读模式**：绕开全局钩子，`hid` 库直接读键盘原始报文，全屏游戏里也能触发（Bongo Cat Mver 同款思路）；
+2. **音效**：砸下去时叠一个很轻的"啪"，音量跟随打字速度 —— Bongo Cat 的另一个灵魂；
+3. **多个姿势**：再生成几张"爪子抬起 / 张嘴 / 生气"的原画，扩展成状态机；
+4. **连击计数 / 打字速度显示**：打字越快砸得越狠。
