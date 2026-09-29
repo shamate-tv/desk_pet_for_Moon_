@@ -3,7 +3,13 @@
 一张 OC 插画 → 桌面宠物：**你敲键盘，她的手就按在笔记本键盘上**（绕腕关节下压 + 全身微微下沉），
 空闲时会随机眨眼，鼠标点击会点头，鼠标穿透/拖动/托盘菜单齐全。
 
-![预览](build/preview_sheet.png)
+![打字效果](preview/typing.gif)
+
+*静态分帧见 `preview/typing.jpg`，五个状态并排见 `preview/states.jpg`*
+
+真实桌面上的样子（透明背景，直接压在编辑器/壁纸上）：
+
+![桌面上运行](preview/desktop.jpg)
 
 ---
 
@@ -54,11 +60,17 @@ assets/hand.png         打字的手(腕部 alpha 渐隐, 便于旋转)
 assets/base.png         手背后已补洞的版本(留给以后的"抬手"动作)
 assets/lid.png          闭眼眼皮补丁
 pet/main.py             桌宠主程序
+pet.ico                 exe / 托盘图标(由 tools/make_icon.py 生成)
 tools/step1_matte.py    整图抠像
 tools/step2_hand.py     切手 + 补洞
 tools/step3_eye.py      眨眼层
-tools/preview_gif.py    离线渲染动图预览(不开窗口也能看动作)
-build/                  各类验收图(见下)
+tools/preview_gif.py    离线渲染动图(不依赖 Qt)
+tools/make_icon.py      从 sprite.png 生成 pet.ico
+tools/make_preview.py   从 build/ 导出 README 用的 preview/ 图
+tools/build_exe.bat     一键重新打包 exe
+preview/                仓库用预览图(README 引用这些)
+release/MoonPet.exe     打包好的成品
+build/                  中间产物 + 全部调试图(.gitignore 忽略, 不进仓库)
 ```
 
 ## 素材流水线
@@ -69,6 +81,7 @@ python tools\step2_hand.py      :: -> assets/hand.png / base.png + build/review_
 python tools\step3_eye.py       :: -> assets/lid.png + build/review_lid.png
 python tools\preview_gif.py     :: -> build/preview.gif + build/preview_sheet.png
 python pet\main.py --selftest build\selftest.png   :: 离屏渲染各状态
+python tools\make_preview.py    :: 把上面这些导出/压缩成 preview/ 里的 README 用图
 ```
 
 几个关键实现点（换图时照着改就行）：
@@ -117,16 +130,29 @@ tools\build_exe.bat
 
 > `--onefile` 启动慢、且个别杀毒软件会误报；想要秒开可以改成 `--onedir`（产出一个文件夹，里面放快捷方式）。
 
-## 验收图（`build/`）
+## 验收图 / 预览图
+
+`preview/` 是**给仓库和 README 用的**（ASCII 文件名、压过体积，会被 git 跟踪）：
 
 | 文件 | 看什么 |
 |---|---|
-| `review_matte.png` | 抠像轮廓（棋盘底 + 红线） |
-| `zoom_corner.png` | 帽子羽毛区域边界 |
-| `review_rotate.png` | 手腕旋转 0°/2°/4° 的接缝 |
-| `review_lid.png` | 睁眼 / 闭眼对比（放大 4 倍 + 实际尺寸各一版） |
-| `preview.gif` | 打字动图 |
-| `selftest.png` | 五个状态并排 |
+| `typing.gif` | 打字动图（README 首图） |
+| `typing.jpg` | 同一段的 6 帧静图 |
+| `states.jpg` | 五个状态并排：静息 / 1.5° / 2.8° / 4.0° / 闭眼 |
+| `hand-rotate.jpg` | 手腕旋转 0°/2°/4° 的接缝 |
+| `blink.png` | 睁眼 / 闭眼对比（4 倍放大 + 实际尺寸） |
+| `matte.jpg` | 抠像轮廓（棋盘底 + 红线） |
+| `desktop.jpg` | 真实桌面实拍 |
+
+`build/` 是**中间产物 + 全部调试图**（`zoom_*.png`、PyInstaller 工作目录、日志等），
+已在 `.gitignore` 里忽略，不进仓库。跑完流水线后想更新 `preview/` 就执行：
+
+```bat
+python tools\make_preview.py     :: 从 build/ 导出预览图到 preview/
+```
+
+> 想自己看图：`build/selftest.png`（离屏渲染各状态）、`build/review_*.png`（各步骤验收图）、
+> `build/zoom_corner.png`（帽子羽毛边界）。
 
 ## 已知限制
 
