@@ -53,30 +53,26 @@ def hand_mask(crop_rgb):
 
 
 def fill_hole(crop_rgb, hole, keep_from_x):
-    """补洞: inpaint 后用周围材质的色度覆盖掉补洞区, 消除指甲的紫色拖影。
-    keep_from_x: 该列以右保持原像素(腕部与袖子接壤处, 保证旋转时无缝)。"""
+    """修补手背后的洞。
+    keep_from_x: 该列以右保持原像素(腕部与袖子接壤处, 保证旋转时无缝)。
+
+    关键: 右侧保留区是**皮肤**, 绝不能参与 inpaint 采样 —— 否则整块补出来的洞会被染成
+    肉色, 形状又是手形, 于是看起来就像"底下还留着一只手"。所以先把保留区也挖掉,
+    只让下方的机身/桌面/键盘来填。
+    """
     h, w = hole.shape
     bgr = cv2.cvtColor(crop_rgb, cv2.COLOR_RGB2BGR)
-    filled = cv2.inpaint(bgr, hole, 4, cv2.INPAINT_TELEA)
-    filled = cv2.medianBlur(filled, 7)
-
-    # 洞周围一圈的平均色 = 该处真实材质色
-    ring = cv2.dilate(hole, np.ones((13, 13), np.uint8)) - hole
-    ring_px = filled[ring > 0]
-    if len(ring_px):
-        mean_bgr = ring_px.mean(0)
-        g = cv2.cvtColor(filled, cv2.COLOR_BGR2GRAY)
-        mean_g = float(cv2.cvtColor(mean_bgr.reshape(1, 1, 3).astype(np.uint8),
-                                     cv2.COLOR_BGR2GRAY)[0, 0])
-        forced = np.clip(g[..., None].astype(np.float32) - mean_g + mean_bgr, 0, 255)
-        a = cv2.GaussianBlur(hole, (0, 0), 2.0)[..., None].astype(np.float32) / 255.0
-        filled = filled.astype(np.float32) * (1 - a) + forced * a
-        filled = filled.astype(np.uint8)
-
-    out = crop_rgb.copy()
-    a = cv2.GaussianBlur(hole, (0, 0), 1.0)[..., None].astype(np.float32) / 255.0
-    out = (filled.astype(np.float32) * a + crop_rgb.astype(np.float32) * (1 - a)).astype(np.uint8)
     local_x = keep_from_x - BOX[0]
+
+    src_hole = hole.copy()
+    if 0 < local_x < w:
+        src_hole[:, local_x:] = 255
+    filled = cv2.inpaint(bgr, src_hole, 4, cv2.INPAINT_TELEA)
+    filled = cv2.medianBlur(filled, 5)          # 抹掉指甲的紫色拖影
+
+    a = cv2.GaussianBlur(hole, (0, 0), 1.0)[..., None].astype(np.float32) / 255.0
+    out = (filled.astype(np.float32) * a + crop_rgb.astype(np.float32) * (1 - a))
+    out = out.astype(np.uint8)
     if 0 < local_x < w:
         out[:, local_x:] = crop_rgb[:, local_x:]
     return out

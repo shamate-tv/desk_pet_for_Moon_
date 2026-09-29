@@ -39,7 +39,7 @@ PIVOT = (470.0, 1030.0)                   # 腕关节 = 旋转轴(全图坐标)
 LID_BOX = (325, 335, 415, 396)
 
 ANG_MIN, ANG_STEP, ANG_N = -1.0, 0.1, 51  # 手部旋转预渲染: -1.0° ~ +4.0°
-PRESS_ANGLE = 2.8                         # 按键时手的旋转角(度)
+PRESS_ANGLE = 2.0                         # 按键时手的旋转角(度); 越大越夸张, 但露出补洞区的带宽也越大
 ATTACK, RELEASE = 26.0, 13.0              # 按下/回弹 的收敛速度(越大越快)
 KEY_PULSE = 0.085                         # 极短促的按键也要保证手有可见动作(秒)
 BODY_SQUASH = 0.0026                      # 按键时整身纵向压缩比例(打击感)
@@ -403,8 +403,8 @@ def selftest(out_path):
     """离屏渲染若干状态拼成一张图, 用来验收动作与抠像边缘。"""
     app = QApplication.instance() or QApplication(sys.argv)
     pet = Pet()
-    states = [("idle 0°", 0.0, 0.0), ("press 1.5°", 1.5, 0.0), ("press 2.8°", 2.8, 0.0),
-              ("press 4.0°", 4.0, 0.0), ("blink", 0.0, 1.0)]
+    states = [("idle 0°", 0.0, 0.0), ("press 1.0°", 1.0, 0.0), ("press 2.0°", 2.0, 0.0),
+              ("press 3.0°", 3.0, 0.0), ("blink", 0.0, 1.0)]
     w, h = pet.width(), pet.height()
     canvas = QPixmap(int(w * len(states) + 8 * (len(states) - 1)), h)
     canvas.fill(QColor(38, 40, 48))
