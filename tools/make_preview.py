@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-"""把 build/ 里的验收图导出成仓库用的 preview/ 目录(build/ 被 .gitignore 忽略, 不能当图床)。
-输出全部为 ASCII 文件名, 体积做了压缩, 供 README 引用。
+"""把 build/ 里的验收图导出成仓库用的 preview/ 目录(build/ 被 .gitignore 忽略)。
+输出全部 ASCII 文件名 + 压过体积, 供 README 引用。
 """
 import os
+import subprocess
+import sys
 from PIL import Image
 
-SRC = "build"
-DST = "preview"
+SRC, DST = "build", "preview"
 os.makedirs(DST, exist_ok=True)
 
 
@@ -26,41 +27,27 @@ def export(src, dst, scale=1.0, quality=None, crop=None):
         im.convert("RGB").save(out, quality=quality, optimize=True)
     else:
         im.save(out, optimize=True)
-    print("%-22s <- %-24s %6.0f KB" % (dst, src, os.path.getsize(out) / 1024))
-
-
-def export_gif():
-    """动图单独做小一点, 不然仓库里放个 2MB 的 gif 太重。"""
-    import sys
-    sys.argv = ["x"]
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "pg", os.path.join(os.path.dirname(os.path.abspath(__file__)), "preview_gif.py"))
-    pg = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(pg)
-    pg.SCALE = 0.38
-    pg.main()
-    im = Image.open(os.path.join(SRC, "preview.gif"))
-    frames = []
-    for i in range(im.n_frames):
-        im.seek(i)
-        frames.append(im.convert("RGB").quantize(colors=48, method=Image.MEDIANCUT))
-    out = os.path.join(DST, "typing.gif")
-    frames[0].save(out, save_all=True, append_images=frames[1:], duration=55, loop=0, disposal=2)
-    print("%-22s <- %-24s %6.0f KB" % ("typing.gif", "preview.gif", os.path.getsize(out) / 1024))
+    print("%-18s <- %-24s %6.0f KB" % (dst, src, os.path.getsize(out) / 1024))
 
 
 if __name__ == "__main__":
-    export("preview_sheet.png", "typing.jpg", 0.85, 88)
-    export("selftest.png", "states.jpg", 0.70, 88)
-    export("review_matte.png", "matte.jpg", 0.80, 90)
-    export("review_rotate.png", "hand-rotate.jpg", 0.85, 88)
-    export("review_lid.png", "blink.png", 1.0)
-    # 桌面实拍: 裁掉聊天窗口, 只留桌宠 + 任务栏
-    export("exe_screen.png", "desktop.jpg", 0.62, 88, crop=(190, 95, 735, 840))
-    export_gif()
-    for old in ("typing.png", "states.png", "matte.png", "hand-rotate.png"):
+    subprocess.run([sys.executable, os.path.join("tools", "preview_bongo.py")], check=True)
+    export("preview_bongo_sheet.png", "typing.jpg", 0.80, 88)   # 打字分帧
+    export("selftest_bongo.png", "states.jpg", 0.62, 88)        # 五个状态
+    export("review_bongo.png", "paw-dive.jpg", 0.80, 88)        # 爪子下砸 + 补洞检查
+    export("review_bongo_eyes.png", "blink.png", 1.0)           # 睁眼/闭眼
+    export("bongo_live.png", "desktop.jpg", 0.60, 88, crop=(40, 20, 700, 500))
+    # 主预览动图: 重新压成仓库用尺寸
+    im = Image.open(os.path.join(SRC, "preview_bongo.gif"))
+    frames = []
+    for i in range(0, im.n_frames, 3):          # 隔帧取, 30fps 足够, 体积减半
+        im.seek(i)
+        frames.append(im.convert("RGB").quantize(colors=40, method=Image.MEDIANCUT))
+    frames[0].save(os.path.join(DST, "typing.gif"), save_all=True, append_images=frames[1:],
+                   duration=int(im.info.get("duration", 17)) * 3, loop=0, disposal=2)
+    print("%-18s <- %-24s %6.0f KB" % ("typing.gif", "preview_bongo.gif",
+                                       os.path.getsize(os.path.join(DST, "typing.gif")) / 1024))
+    for old in ("hand-rotate.jpg", "matte.jpg"):
         f = os.path.join(DST, old)
         if os.path.exists(f):
             os.remove(f)
