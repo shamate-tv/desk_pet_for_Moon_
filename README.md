@@ -1,5 +1,7 @@
 # Moon 桌宠（Bongo Cat 式打字反馈）
 
+**当前版本 v1.0.2** · [更新日志](CHANGELOG.md) · [下载](https://github.com/shamate-tv/desk_pet_for_Moon_/releases)（取 Releases 里的 `MoonPet-v1.0.2.exe`）
+
 一张 OC 插画 → 桌面宠物：**你敲键盘，她的手就按在笔记本键盘上**（绕腕关节下压 + 全身微微下沉），
 空闲时会随机眨眼，鼠标点击会点头，鼠标穿透/拖动/托盘菜单齐全。
 
@@ -117,8 +119,12 @@ python tools\make_preview.py    :: 把上面这些导出/压缩成 preview/ 里�
 
 ## 打包成 exe
 
-`release\MoonPet.exe`（单文件，53 MB，绿色免安装，目标机器不需要 Python）。
+`release\MoonPet-v1.0.2.exe`（单文件，53 MB，绿色免安装，目标机器不需要 Python）。
 双击即用；首次启动要解包到临时目录，约 3~6 秒才出现。
+
+**版本号只有一个来源**：`pet/main.py` 顶部的 `VERSION`。打包脚本会读它，自动写进
+exe 的 Windows 属性（右键→属性→详细信息能看到 1.0.2）、并命名成 `MoonPet-v1.0.2.exe`。
+发新版时改那一行 + 在 `CHANGELOG.md` 加一段即可。
 
 重新打包：
 

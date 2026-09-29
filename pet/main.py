@@ -20,9 +20,11 @@ import time
 from PySide6.QtCore import Qt, QTimer, QPoint, QObject, Signal, QRectF
 from PySide6.QtGui import (QPixmap, QPainter, QTransform, QImage, QAction, QActionGroup,
                            QIcon, QCursor, QColor)
-from PySide6.QtWidgets import QApplication, QWidget, QMenu, QSystemTrayIcon
+from PySide6.QtWidgets import (QApplication, QWidget, QMenu, QSystemTrayIcon,
+                               QMessageBox)
 
 # ----------------------------------------------------------------------------- 常量
+VERSION = "1.0.2"                         # 发版时改这里(打包脚本会读它写进 exe 属性)
 # 打包成 exe 后: 素材在 exe 内部(sys._MEIPASS), 配置写在 exe 旁边(可写)
 if getattr(sys, "frozen", False):
     BASE_DIR = os.path.dirname(sys.executable)
@@ -110,7 +112,7 @@ class Pet(QWidget):
                             (Qt.WindowStaysOnTopHint if self.cfg.get("on_top", True) else Qt.WindowNoState))
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
-        self.setWindowTitle("Moon Pet")
+        self.setWindowTitle("Moon 桌宠 v%s" % VERSION)
 
         self._load_assets()
         self._resize()
@@ -351,13 +353,15 @@ class Pet(QWidget):
         self.menu.addAction(self.act_passthrough)
 
         self.menu.addSeparator()
+        a = QAction("关于 Moon 桌宠", self); a.triggered.connect(self.show_about)
+        self.menu.addAction(a)
         a = QAction("回到右下角", self); a.triggered.connect(self._reset_pos)
         self.menu.addAction(a)
         a = QAction("退出", self); a.triggered.connect(self.quit)
         self.menu.addAction(a)
 
         self.tray = QSystemTrayIcon(self.tray_icon, self)
-        tip = "Moon 桌宠 — 打字时会敲键盘"
+        tip = "Moon 桌宠 v%s — 打字时会敲键盘" % VERSION
         if not self.input_ok:
             tip += "\n(全局键鼠监听未启用: %s)" % (self.bridge.error or "")
         self.tray.setToolTip(tip)
@@ -371,6 +375,17 @@ class Pet(QWidget):
         self.show()
         self.cfg["on_top"] = bool(on)
         self.save_cfg()
+
+    def show_about(self):
+        QMessageBox.information(
+            self, "关于 Moon 桌宠",
+            "Moon 桌宠  v%s\n\n"
+            "打字时她会跟着敲笔记本键盘（手绕腕关节旋转）。\n\n"
+            "拖动：左键        菜单：右键        托盘：显示/隐藏\n"
+            "Ctrl+Alt+P  鼠标穿透\n"
+            "Ctrl+Alt+H  显示 / 隐藏\n\n"
+            "素材来自一张 OC 插画，由 tools/step*.py 自动切分。\n"
+            "配置写在 exe 同目录的 config.json。" % VERSION)
 
     def _reset_pos(self):
         self.cfg.pop("x", None); self.cfg.pop("y", None)
