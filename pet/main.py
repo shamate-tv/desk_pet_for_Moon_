@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (QApplication, QWidget, QMenu, QSystemTrayIcon,
                                QMessageBox)
 
 # ----------------------------------------------------------------------------- 常量
-VERSION = "2.0.0"                         # 发版时改这里(打包脚本会读它写进 exe 属性)
+VERSION = "2.0.1"                         # 发版时改这里(打包脚本会读它写进 exe 属性)
 if getattr(sys, "frozen", False):
     BASE_DIR = os.path.dirname(sys.executable)
     RES_DIR = getattr(sys, "_MEIPASS", BASE_DIR)
@@ -35,7 +35,7 @@ ASSETS = os.path.join(RES_DIR, "assets")
 CONFIG = os.path.join(BASE_DIR, "config.json")
 
 SPRITE_W, SPRITE_H = 1459, 1078
-PAW_BOX = {"l": (326, 596, 518, 792), "r": (864, 708, 1048, 856)}
+PAW_BOX = {"l": (322, 594, 522, 794), "r": (860, 704, 1052, 862)}
 PAW_W, PAW_H = PAW_BOX["r"][2] - PAW_BOX["r"][0], PAW_BOX["r"][3] - PAW_BOX["r"][1]   # 含余量, 供下砸/压扁用
 EYE_BOX = (494, 490, 920, 680)
 

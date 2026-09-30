@@ -1,6 +1,6 @@
 # Moon 桌宠（Bongo Cat 式打字反馈）
 
-**当前版本 v2.0.0**（Bongo Cat 版） · [更新日志](CHANGELOG.md) · [下载](https://github.com/shamate-tv/desk_pet_for_Moon_/releases)（取 Releases 里的 `MoonPet-v2.0.0.exe`）
+**当前版本 v2.0.1**（Bongo Cat 版） · [更新日志](CHANGELOG.md) · [下载](https://github.com/shamate-tv/desk_pet_for_Moon_/releases)（取 Releases 里的 `MoonPet-v2.0.1.exe`）
 
 一张 OC 插画 → Bongo Cat 式桌宠：**你敲键盘，她就躲在桌子后面左右爪交替拍桌子**，
 整个人跟着往下一沉；空闲时随机眨眼，鼠标点击双爪同砸，鼠标穿透/拖动/托盘菜单齐全。
@@ -95,7 +95,7 @@ build/                    中间产物 + 全部调试图(.gitignore 忽略)
 ## 素材流水线
 
 ```bat
-python toolsongo_bg.py       :: 画师分好的图层 -> assets/bg.png(场景板) + assets/paw_l.png
+python toolsongo_bg.py       :: art/ 六图层 -> assets/bg.png(场景板) + paw_l/paw_r.png
 python toolsongo_keys.py     :: 键帽检测 + 单应拟合 -> assets/keys.json(50 个键位)
 python toolsongo_cut.py      :: (备用)从整图自动切图层
 python tools\preview_bongo.py  :: -> build/preview_bongo.gif + 分帧图
@@ -150,7 +150,7 @@ release\MoonPet-v2.0.0.exe --keydebug
 双击即用；首次启动要解包到临时目录，约 3~6 秒才出现。
 
 **版本号只有一个来源**：`pet/main.py` 顶部的 `VERSION`。打包脚本会读它，自动写进
-exe 的 Windows 属性（右键→属性→详细信息能看到版本号）、并命名成 `MoonPet-v2.0.0.exe`。
+exe 的 Windows 属性（右键→属性→详细信息能看到版本号）、并命名成 `MoonPet-v2.0.1.exe`。
 发新版时改那一行 + 在 `CHANGELOG.md` 加一段即可。
 
 重新打包：
