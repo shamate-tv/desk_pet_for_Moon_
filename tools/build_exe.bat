@@ -1,14 +1,17 @@
 @echo off
 rem Repack release\MoonPet-vX.Y.Z.exe  (needs: pip install pyinstaller)
 rem Version comes from VERSION in pet\main.py -- edit that one line before releasing.
+rem NOTE: "python" on PATH may point to another (older) interpreter -> find 3.14 explicitly.
 cd /d "%~dp0.."
+set "PY=%LOCALAPPDATA%\Programs\Python\Python314\python.exe"
+if not exist "%PY%" set "PY=py -3"
 
-python tools\make_version_file.py || goto :err
-python tools\make_icon.py || goto :err
+%PY% tools\make_version_file.py || goto :err
+%PY% tools\bongo_bg.py || goto :err
 set /p VER=<build\ver.txt
 echo Building MoonPet-v%VER%.exe ...
 
-python -m PyInstaller --noconfirm --onefile --noconsole --name "MoonPet-v%VER%" ^
+%PY% -m PyInstaller --noconfirm --onefile --noconsole --name "MoonPet-v%VER%" ^
   --icon "%CD%\pet.ico" ^
   --version-file "%CD%\build\version_info.txt" ^
   --add-data "%CD%\assets;assets" ^
