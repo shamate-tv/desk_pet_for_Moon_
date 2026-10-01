@@ -86,9 +86,11 @@ def build():
     n = len(LAYERS)
     p = len(PARAMS)
     # 每片绑到哪根参数轴: bg 静态(空轴), 两只爪子各自一根轴
-    # band 表按"参数索引升序"排(槽位索引数组必须有序, 否则 Core 查不到后半截)
-    BANDS = [[], [2], [3]]                       # band1 = 右手参数, band2 = 左手参数
-    DRAWABLE_BANDS = [0, 2, 1]                   # bg / 左手片 / 右手片
+    # 手部 band 用双轴: [猫手参数, 鼠标键参数] —— BongoCat 的 standard 模式推的是
+    # ParamMouseLeftDown/RightDown, keyboard 模式推的是 CatParamLeft/RightHandDown,
+    # 两轴各 2 个取值 => 每只手 4 个关键形; 只有 (0,0) 是"抬起", 其余都是"拍下去"。
+    BANDS = [[], [3], [2]]                      # band1 = CatParamLeftHandDown, band2 = CatParamRightHandDown
+    DRAWABLE_BANDS = [0, 1, 2]                   # bg / 左手片 / 右手片
     KF_PER = []
     for axes in [BANDS[b] for b in DRAWABLE_BANDS]:
         c = 1
