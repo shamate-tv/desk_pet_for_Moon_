@@ -3,8 +3,8 @@
 
   打字 -> 左右爪交替下砸 + 整体(以底边为锚)纵向压缩, 空闲 -> 随机眨眼, 鼠标点击 -> 双爪同砸。
 
-素材: assets/base.png(底图) / paw_l.png / paw_r.png(两只手套爪) / eyes_closed.png(闭眼)
-      由 tools/bongo_cut.py 从 art/BongoCatOC抠图.png 自动切出。
+素材: assets/bg.png(场景板) / paw_l.png / paw_r.png(两只手套爪) / eyes_closed.png(闭眼) / keys.json(键位)
+      由 tools/bongo_bg.py 从画师分好的 art/ 图层拼出(bongo_keys.py 生成键位表)。
 运行: python pet/main.py            正常启动
       python pet/main.py --demo     演示模式(自动模拟打字, 不用真的敲键盘)
       python pet/main.py --selftest build/selftest_bongo.png

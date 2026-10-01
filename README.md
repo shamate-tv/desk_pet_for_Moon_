@@ -67,30 +67,35 @@ python pet\main.py --demo   :: 演示模式, 自动模拟打字(不用真的敲)
 ## 文件结构
 
 ```
-art/BongoCatOC.jpg        这一版用的原图(AI 生成)
-art/BongoCatOC抠图.png     去背后的版本(古法抠图, 素材流水线的输入)
-art/base.jpg              上一版(半身像)的原图
-assets/                   这一版(Bongo)的素材
-  base.png                底图: 两只爪子已挖掉并补好
-  paw_l.png / paw_r.png   左手套爪 / 右手套爪
+art/                      素材源
+  OC.psd                  母版(PSD, 6 个图层) —— 改图只动它
+  人物.png 左手.png 右手.png 桌子.png 键盘.png 鼠标垫.png    导出的图层
+  BongoCatOC.jpg / 抠图.png   AI 原图 / 去背版
+assets/                   程序实际读取的素材(由 art/ 生成, 已去掉 PS 元数据)
+  bg.png                  场景板 = 桌子+键盘+鼠标垫+人物
+  paw_l.png / paw_r.png   左手 / 右手可动层
   eyes_closed.png         闭眼补丁
-assets_halfbody/          上一版(半身像)的素材, 配合 pet/halfbody.py 使用
-pet/main.py               Bongo 版主程序(默认)
-pet/halfbody.py           上一版半身像主程序(仍可运行)
-pet.ico                   exe / 托盘图标(tools/make_icon.py 生成)
-tools/bongo_cut.py        Bongo 版素材流水线(原图 -> 四个图层)
-tools/preview_bongo.py    离线渲染动图(不依赖 Qt)
-tools/step1_matte.py      上一版: 整图抠像
-tools/step2_hand.py       上一版: 切手 + 补洞
-tools/step3_eye.py        上一版: 眨眼层
-tools/make_icon.py        生成 pet.ico
-tools/make_version_file.py 读 VERSION 生成 exe 版本资源
-tools/make_preview.py     从 build/ 导出 README 用的 preview/ 图
-tools/build_exe.bat       一键重新打包 exe
+  keys.json               50 个键位的坐标
+pet/
+  main.py                 桌宠主程序
+pet.ico                   exe / 托盘图标
+tools/
+  bongo_bg.py             art/ 六图层 -> assets/bg.png + 两只手
+  bongo_keys.py           键帽检测 + 单应拟合 -> assets/keys.json
+  optimize_assets.py      PNG 无损瘦身(去 PS 元数据)
+  make_version_file.py    读 VERSION 生成 exe 版本资源
+  make_preview.py         从 build/ 导出 README 用的 preview/ 图
+  preview_bongo.py        离线渲染动图
+  build_exe.bat           一键打包 exe
+  bongo_cut.py            备用: 从整图自动切图层(手工分层不好时用)
+lab/live2d/               已结案的 Live2D 可行性验证(代码 + 数据 + 结论)
 preview/                  仓库用预览图(README 引用这些)
-release/MoonPet-v*.exe    打包好的成品
-build/                    中间产物 + 全部调试图(.gitignore 忽略)
+release/                  打包好的 exe + 读我.txt
+build/                    中间产物 + 验收图(.gitignore 忽略)
 ```
+
+> `art/*.png` 从 PS 导出时带了几 MB 的 XMP 编辑历史, 对渲染毫无用处。
+> 跑 `python tools\optimize_assets.py` 可**无损**去掉(逐像素校验), 42MB → 1.2MB。
 
 ## 素材流水线
 
@@ -100,11 +105,11 @@ python toolsongo_keys.py     :: 键帽检测 + 单应拟合 -> assets/keys.json
 python toolsongo_cut.py      :: (备用)从整图自动切图层
 python tools\preview_bongo.py  :: -> build/preview_bongo.gif + 分帧图
 python pet\main.py --selftest build\selftest_bongo.png   :: 离屏渲染各状态
+python tools\optimize_assets.py :: PNG 无损瘦身(去 PS 元数据, 逐像素校验)
 python tools\make_preview.py   :: 把上面这些导出/压缩成 preview/ 里的 README 用图
 toolsuild_exe.bat            :: 重新打包 exe
 ```
 
-（上一版的流水线 `step1_matte.py / step2_hand.py / step3_eye.py` 仍然保留，配合 `pet/halfbody.py` 用。）
 
 ### 键位校准（`--keydebug`）
 

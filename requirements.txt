@@ -1,5 +1,12 @@
+# 运行桌宠本体
 PySide6>=6.5
 pynput>=1.7
-opencv-python>=4.8
 numpy>=1.24
 Pillow>=10.0
+
+# 素材流水线(重新切分/压缩素材时才需要)
+opencv-python>=4.8
+scipy>=1.10
+
+# 打包 exe
+pyinstaller>=6.0

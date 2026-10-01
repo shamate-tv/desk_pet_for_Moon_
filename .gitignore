@@ -1,6 +1,15 @@
+# 构建中间产物 / 调试输出
 build/
-release/config.json
-release/*.exe
 __pycache__/
 *.pyc
+
+# 运行时生成
 config.json
+config_l2d.json
+release/config.json
+
+# 打包产物(走 GitHub Releases, 不进仓库)
+release/*.exe
+
+# 实验用的第三方模型(版权归 Live2D, 只作本地测试)
+models/
