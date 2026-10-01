@@ -76,6 +76,11 @@ PARAMS = [
     ("ParamMouseY", -1, 1, 0, [0.0]),
     ("ParamMouseLeftDown", 0, 1, 0, [0.0]),
     ("ParamMouseRightDown", 0, 1, 0, [0.0]),
+    ("Param", 0, 1, 0, [0.0, 1.0]),          # 官方模型里它就是"左手"
+    ("Param2", 0, 1, 0, [0.0, 1.0]),         # 它就是"右手"
+    ("Param3", 0, 30, 0, [0.0]),
+    ("Param4", 0, 1, 0, [0.0]),
+    ("Param5", 0, 1, 0, [0.0]),
     ("ParamHairFront", -1, 1, 0, [0.0]),
     ("ParamHairSide", -1, 1, 0, [0.0]),
     ("ParamHairBack", -1, 1, 0, [0.0]),
@@ -89,7 +94,8 @@ def build():
     # 手部 band 用双轴: [猫手参数, 鼠标键参数] —— BongoCat 的 standard 模式推的是
     # ParamMouseLeftDown/RightDown, keyboard 模式推的是 CatParamLeft/RightHandDown,
     # 两轴各 2 个取值 => 每只手 4 个关键形; 只有 (0,0) 是"抬起", 其余都是"拍下去"。
-    BANDS = [[], [3], [2]]                      # band1 = CatParamLeftHandDown, band2 = CatParamRightHandDown
+    _idx = {x[0]: i for i, x in enumerate(PARAMS)}
+    BANDS = [[], [_idx["Param"]], [_idx["Param2"]]]   # 官方模型: Param=左手, Param2=右手
     DRAWABLE_BANDS = [0, 1, 2]                   # bg / 左手片 / 右手片
     KF_PER = []
     for axes in [BANDS[b] for b in DRAWABLE_BANDS]:
@@ -261,9 +267,35 @@ def build():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     m.to_file(str(OUT_DIR / "Moon.moc3"))
     atlas.save(OUT_DIR / "texture_00.png")
+
+    # ---- 动作文件: BongoCat 是靠"播放动作"来拍手的(官方模型的 CAT_motion 组),
+    #      没有动作的模型在它里面就会愣着不动。这里生成两个"拍一下"的动作, 曲线直接
+    #      驱动我们自己的手部参数(0=抬起 1=拍下), 两个动作分别拍左右手, 它随机取用。
+    def slap_motion(fname, left_down, right_down):
+        def curve(pid, own):
+            other = 1.0 - own * 0.0
+            v0, v1, v2 = (0.0, own, 0.0) if pid == left_down else (0.0, own, 0.0)
+            return {"Target": "Parameter", "Id": pid, "Segments": [0.0, v0, 0, 0.16, v1, 0, 0.42, v2]}
+        curves = [curve("Param", 1.0 if left_down else 0.15),
+                  curve("Param2", 1.0 if right_down else 0.15),
+                  curve("ParamAngleZ", 1.2 if left_down else -1.2)]
+        segs = sum((len(c["Segments"]) - 2) // 3 for c in curves)
+        doc = {"Version": 3,
+               "Meta": {"Duration": 0.42, "Fps": 30.0, "Loop": False,
+                        "AreBeziersRestricted": True, "CurveCount": len(curves),
+                        "TotalSegmentCount": segs, "TotalPointCount": segs + len(curves),
+                        "UserDataCount": 0, "TotalUserDataSize": 0},
+               "Curves": curves, "UserData": []}
+        (OUT_DIR / fname).write_text(json.dumps(doc, indent=1), encoding="utf-8")
+        return fname
+
+    slap_left = slap_motion("live2d_motion1.motion3.json", True, False)
+    slap_right = slap_motion("live2d_motion2.motion3.json", False, True)
+    motions = {g: [{"File": f, "FadeInTime": 0, "FadeOutTime": 0} for f in (slap_left, slap_right)]
+               for g in ("CAT_motion", "CAT_motion_lock")}
     (OUT_DIR / "Moon.model3.json").write_text(json.dumps({
         "Version": 3,
-        "FileReferences": {"Moc": "Moon.moc3", "Textures": ["texture_00.png"]},
+        "FileReferences": {"Moc": "Moon.moc3", "Textures": ["texture_00.png"], "Motions": motions},
         "Groups": [],
     }, indent=2), encoding="utf-8")
     print("已写出:", OUT_DIR)
