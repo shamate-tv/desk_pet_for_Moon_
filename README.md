@@ -91,9 +91,16 @@ tools/
   preview_bongo.py        离线渲染动图
   build_exe.bat           一键打包 exe
   bongo_cut.py            备用: 从整图自动切图层(手工分层不好时用)
-lab/live2d/               已结案的 Live2D 可行性验证(代码 + 数据 + 结论)
+  make_live2d.py          把 art/ 的图层直接编译成 Live2D 模型(.moc3), 给 BongoCat 用
+lab/live2d/               Live2D 建模实验区(含 MIT 许可的 moc3 序列化器)
+  README.md               ★ 实测摸清的规则: moc3 格式坑 + BongoCat 模型适配全套
+  moc3/py-moc3/           MIT 的实验性 .moc3 序列化器(直接从代码写模型, 不用 Cubism Editor)
+  ref_bongocat/           BongoCat 官方参考模型(参数约定/动作约定的来源)
 preview/                  仓库用预览图(README 引用这些)
-release/                  打包好的 exe + 读我.txt
+release/                  交付物(都走 GitHub Releases 附件, 不进仓库)
+  MoonPet-vX.Y.Z.exe      桌宠本体
+  Moon-BongoCat-model.zip Moon 的 Live2D 模型包(导入 BongoCat 用)
+  读我.txt                桌宠本体的使用说明
 build/                    中间产物 + 验收图(.gitignore 忽略)
 ```
 
@@ -168,6 +175,42 @@ release\MoonPet-v2.0.0.exe --keydebug
 2. 跑 `python toolsongo_cut.py`，看 `build/review_bongo.png`（左=静止 / 右=双爪砸到底）
    和 `build/review_bongo_eyes.png`（睁眼/闭眼）。
 3. 描边断裂导致爪子分割不出来时，用 `PAW_POLY` 手描外轮廓；眼睛识别失败时检查 `find_eyes` 的阈值。
+
+## 给 BongoCat 做 Live2D 模型
+
+`tools/make_live2d.py` 能**直接用代码把 `art/` 的画师图层编译成 `.moc3`**——不装 Cubism Editor，
+走的是 MIT 许可的实验性序列化器（`lab/live2d/moc3/py-moc3/`）。产出的模型可导入
+[BongoCat](https://github.com/vladelaina/BongoCat) 这类支持标准 Cubism 3/4 模型的应用。
+
+```bat
+:: 三个模式驱动的手部参数不同, 各出一个变体
+python tools\make_live2d.py --bind kbd --bg char --hands none    :: keyboard 模式
+python tools\make_live2d.py --bind std --bg char --hands none    :: standard 模式
+python tools\make_live2d.py --bind pad --bg char                 :: gamepad  模式
+:: 参数: --bind {kbd,std,pad}  --bg {full,char}  --hands {art,none}
+```
+
+常用调参（都在 `tools/make_live2d.py` 顶部）：
+
+| 参数 | 作用 |
+|---|---|
+| `ART_SCALE` / `ART_OFF_X,Y` | 角色在原画里的缩放与位置（换算到模型画布坐标） |
+| `CANVAS_W/H` | 模型画布。**改高度要同步给 overlay 图补顶/裁**，否则桌沿对不上 |
+| `LIFT_PX` | 抬爪高度 |
+| `PPU` / `ORIGIN_X,Y` | 画布单位与原点，**必须和官方模型一致**（612×354 / 居中 / 354） |
+
+交付：`release/Moon-BongoCat-model.zip`（含 standard / keyboard 两套 + 安装说明），
+用法是把 `Moon/`、`MoonKbd/` 复制到 `%LOCALAPPDATA%\BongoCat\models\` 再在应用里选。
+
+**踩过的坑都在 [`lab/live2d/README.md`](lab/live2d/README.md)**，最关键的几条：
+
+- BongoCat 只认 `%LOCALAPPDATA%` 下的模型目录，且**目录里必须有 `.bongo-cat-builtin`**，否则整个目录被跳过
+- 模型必须自带 `resources/left-keys/right-keys`（键位映射表）和 `Motions`（`CAT_motion` 组），
+  否则**在应用里永远不动**
+- 手部参数按模式而异：keyboard 用 `CatParamLeft/RightHandDown`，standard 用 `Param/Param2`
+- **模型里只放角色**，桌面/键盘/键帽都是应用 overlay 画的（所以键才会亮）
+- 想调"角色相对桌面的高低"**给 overlay 图补顶**，别改模型坐标（后者会破坏对齐并切头）
+- 隐藏部件要把关键形透明度设 0，**删 drawable 会让官方 Core 直接崩**
 
 ## 调参速查（`pet/main.py` 顶部）
 
