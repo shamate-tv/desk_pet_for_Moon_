@@ -37,6 +37,11 @@ SECTION_LAYOUT[82], SECTION_LAYOUT[83] = SECTION_LAYOUT[83], SECTION_LAYOUT[82]
 #   keyboard 模式推 CatParamLeftHandDown / CatParamRightHandDown
 #   standard 模式推 Param / Param2 (它的动作文件动的就是这两个)
 #   gamepad  模式推 CatParamStickLeftDown / CatParamStickRightDown
+BG_MODE = "full"          # full = 桌子+键盘+鼠标垫+人物; char = 只要人物(BongoCat 用)
+for _i, _a in enumerate(sys.argv):
+    if _a == "--bg" and len(sys.argv) > _i + 1:
+        BG_MODE = sys.argv[_i + 1]
+
 BIND = "kbd"
 for _i, _a in enumerate(sys.argv):
     if _a == "--bind" and len(sys.argv) > _i + 1:
@@ -48,8 +53,9 @@ BIND_PARAMS = {
 }[BIND]
 
 SKIN = ROOT / "skins" / "moon"
-LAYERS = [("bg", "bg.png"), ("PawL", "paw_l.png"), ("PawR", "paw_r.png")]
-OUT_DIR = ROOT / "build" / "moc3" / ("Moon_" + BIND)
+_src_bg = "char.png" if BG_MODE == "char" else "bg.png"
+LAYERS = [("bg", _src_bg), ("PawL", "paw_l.png"), ("PawR", "paw_r.png")]
+OUT_DIR = ROOT / "build" / "moc3" / ("Moon_" + BIND + ("_char" if BG_MODE == "char" else ""))
 
 CANVAS_W, CANVAS_H = 1459, 1078
 PPU = 1000.0                     # 每单位多少像素(Cubism 常用 1000)
@@ -179,7 +185,7 @@ def build():
     atlas = Image.new("RGBA", (ATLAS, ATLAS), (0, 0, 0, 0))
     cx, cy = 4, 4
     for i, (nm, fn) in enumerate(LAYERS):
-        im = Image.open(SKIN / fn).convert("RGBA")
+        im = Image.open(ROOT / "art" / "人物.png" if (BG_MODE == "char" and fn == "char.png") else (SKIN / fn)).convert("RGBA")
         w, h = im.size
         assert cx + w + 4 <= ATLAS and cy + h + 4 <= ATLAS, "图集放不下"
         # 边缘外扩 2px, 免得双线性采样在裁切边出现暗边
