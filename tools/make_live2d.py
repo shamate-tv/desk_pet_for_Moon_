@@ -33,9 +33,23 @@ SECTION_LAYOUT[41], SECTION_LAYOUT[44] = SECTION_LAYOUT[44], SECTION_LAYOUT[41]
 SECTION_LAYOUT[82], SECTION_LAYOUT[83] = SECTION_LAYOUT[83], SECTION_LAYOUT[82]
 
 # ---- 素材: 直接用皮肤目录里的三层(全画布同尺寸, 已经对齐好了) ----
+# 手部参数按模式而异(从官方三个模型的参数表反推):
+#   keyboard 模式推 CatParamLeftHandDown / CatParamRightHandDown
+#   standard 模式推 Param / Param2 (它的动作文件动的就是这两个)
+#   gamepad  模式推 CatParamStickLeftDown / CatParamStickRightDown
+BIND = "kbd"
+for _i, _a in enumerate(sys.argv):
+    if _a == "--bind" and len(sys.argv) > _i + 1:
+        BIND = sys.argv[_i + 1]
+BIND_PARAMS = {
+    "kbd": ("CatParamLeftHandDown", "CatParamRightHandDown"),
+    "std": ("Param", "Param2"),
+    "pad": ("CatParamStickLeftDown", "CatParamStickRightDown"),
+}[BIND]
+
 SKIN = ROOT / "skins" / "moon"
 LAYERS = [("bg", "bg.png"), ("PawL", "paw_l.png"), ("PawR", "paw_r.png")]
-OUT_DIR = ROOT / "build" / "moc3" / "Moon"
+OUT_DIR = ROOT / "build" / "moc3" / ("Moon_" + BIND)
 
 CANVAS_W, CANVAS_H = 1459, 1078
 PPU = 1000.0                     # 每单位多少像素(Cubism 常用 1000)
@@ -81,6 +95,8 @@ PARAMS = [
     ("Param3", 0, 30, 0, [0.0]),
     ("Param4", 0, 1, 0, [0.0]),
     ("Param5", 0, 1, 0, [0.0]),
+    ("CatParamStickLeftDown", 0, 1, 0, [0.0, 1.0]),
+    ("CatParamStickRightDown", 0, 1, 0, [0.0, 1.0]),
     ("ParamHairFront", -1, 1, 0, [0.0]),
     ("ParamHairSide", -1, 1, 0, [0.0]),
     ("ParamHairBack", -1, 1, 0, [0.0]),
@@ -95,7 +111,7 @@ def build():
     # ParamMouseLeftDown/RightDown, keyboard 模式推的是 CatParamLeft/RightHandDown,
     # 两轴各 2 个取值 => 每只手 4 个关键形; 只有 (0,0) 是"抬起", 其余都是"拍下去"。
     _idx = {x[0]: i for i, x in enumerate(PARAMS)}
-    BANDS = [[], [_idx["Param"]], [_idx["Param2"]]]   # 官方模型: Param=左手, Param2=右手
+    BANDS = [[], [_idx[BIND_PARAMS[0]]], [_idx[BIND_PARAMS[1]]]]   # 按模式绑对应的手部参数
     DRAWABLE_BANDS = [0, 1, 2]                   # bg / 左手片 / 右手片
     KF_PER = []
     for axes in [BANDS[b] for b in DRAWABLE_BANDS]:
@@ -276,8 +292,8 @@ def build():
             other = 1.0 - own * 0.0
             v0, v1, v2 = (0.0, own, 0.0) if pid == left_down else (0.0, own, 0.0)
             return {"Target": "Parameter", "Id": pid, "Segments": [0.0, v0, 0, 0.16, v1, 0, 0.42, v2]}
-        curves = [curve("Param", 1.0 if left_down else 0.15),
-                  curve("Param2", 1.0 if right_down else 0.15),
+        curves = [curve(BIND_PARAMS[0], 1.0 if left_down else 0.15),
+                  curve(BIND_PARAMS[1], 1.0 if right_down else 0.15),
                   curve("ParamAngleZ", 1.2 if left_down else -1.2)]
         segs = sum((len(c["Segments"]) - 2) // 3 for c in curves)
         doc = {"Version": 3,
