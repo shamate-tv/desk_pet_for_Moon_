@@ -37,6 +37,11 @@ SECTION_LAYOUT[82], SECTION_LAYOUT[83] = SECTION_LAYOUT[83], SECTION_LAYOUT[82]
 #   keyboard 模式推 CatParamLeftHandDown / CatParamRightHandDown
 #   standard 模式推 Param / Param2 (它的动作文件动的就是这两个)
 #   gamepad  模式推 CatParamStickLeftDown / CatParamStickRightDown
+HANDS = "art"             # art = 用画里的两只手; none = 不要手(只留角色)
+for _i, _a in enumerate(sys.argv):
+    if _a == "--hands" and len(sys.argv) > _i + 1:
+        HANDS = sys.argv[_i + 1]
+
 BG_MODE = "full"          # full = 桌子+键盘+鼠标垫+人物; char = 只要人物(BongoCat 用)
 for _i, _a in enumerate(sys.argv):
     if _a == "--bg" and len(sys.argv) > _i + 1:
@@ -54,12 +59,20 @@ BIND_PARAMS = {
 
 SKIN = ROOT / "skins" / "moon"
 _src_bg = "char.png" if BG_MODE == "char" else "bg.png"
-LAYERS = [("bg", _src_bg), ("PawL", "paw_l.png"), ("PawR", "paw_r.png")]
-OUT_DIR = ROOT / "build" / "moc3" / ("Moon_" + BIND + ("_char" if BG_MODE == "char" else ""))
+LAYERS = [("bg", _src_bg), ("PawL", "paw_l.png"), ("PawR", "paw_r.png")]   # 手永远保留在结构里
+OUT_DIR = ROOT / "build" / "moc3" / ("Moon_" + BIND + ("_char" if BG_MODE == "char" else "") + ("_nohands" if HANDS == "none" else ""))
 
-CANVAS_W, CANVAS_H = 1459, 1078
-PPU = 1000.0                     # 每单位多少像素(Cubism 常用 1000)
+# 画布几何必须和官方模型一致(612x354 / origin 居中 / ppu 354) —— 应用是按画布把模型
+# 缩放到它自己的 overlay(桌面键盘)上的, 画布尺寸不同会导致角色被错误缩放和摆放。
+CANVAS_W, CANVAS_H = 612, 498      # 顶部+144(overlay 已同步补顶), 给放大后的角色留头顶空间
+PPU = 354.0
 ORIGIN_X, ORIGIN_Y = CANVAS_W / 2.0, CANVAS_H / 2.0
+# 我的画(1459x1078)在官方画布里的适配: 官方猫占 x139~576 / y-35~312, 我的角色
+# 在 x0~1323 / y90~1077, 所以缩放 0.35 再平移到对齐(水平居中 + 桌沿贴到官方猫底边)
+# 对齐参照: 官方猫在 612x354 画布里的真实渲染范围是 x117~540 / y18~251
+# (头顶 y≈18, 桌沿 y≈245, 头中心 x≈328) —— 按"头顶对齐 + 头中心对齐"配我的角色
+ART_SCALE = 0.525
+ART_OFF_X, ART_OFF_Y = -66.4, -34.2   # 定位累计: 再上移1
 ATLAS = 4096
 COLS, ROWS = 7, 11               # 每片的网格点数(演示级; 形状简单够用)
 NV = COLS * ROWS                 # 每片顶点数
@@ -118,7 +131,9 @@ def build():
     # 两轴各 2 个取值 => 每只手 4 个关键形; 只有 (0,0) 是"抬起", 其余都是"拍下去"。
     _idx = {x[0]: i for i, x in enumerate(PARAMS)}
     BANDS = [[], [_idx[BIND_PARAMS[0]]], [_idx[BIND_PARAMS[1]]]]   # 按模式绑对应的手部参数
-    DRAWABLE_BANDS = [0, 1, 2]                   # bg / 左手片 / 右手片
+    # 注意: 画里屏幕右侧那只手(PawR)是搭在键盘上的 -> 它才是"按键的手";
+    #       屏幕左侧那只(PawL)在鼠标垫上。所以映射要交换, 否则按错手。
+    DRAWABLE_BANDS = [0, 2, 1]                   # bg / PawL / PawR
     KF_PER = []
     for axes in [BANDS[b] for b in DRAWABLE_BANDS]:
         c = 1
@@ -191,8 +206,9 @@ def build():
         # 边缘外扩 2px, 免得双线性采样在裁切边出现暗边
         padded = Image.fromarray(np.pad(np.array(im), ((2, 2), (2, 2), (0, 0)), mode="edge"))
         atlas.paste(padded, (cx - 2, cy - 2))
-        x0, y0 = (0 - ORIGIN_X) / PPU, (0 - ORIGIN_Y) / PPU
-        ww, hh = w / PPU, h / PPU
+        x0 = (0 * ART_SCALE + ART_OFF_X - ORIGIN_X) / PPU
+        y0 = (0 * ART_SCALE + ART_OFF_Y - ORIGIN_Y) / PPU
+        ww, hh = (w * ART_SCALE) / PPU, (h * ART_SCALE) / PPU
         for r in range(ROWS):
             for c in range(COLS):
                 u, v = c / (COLS - 1), r / (ROWS - 1)
@@ -209,12 +225,13 @@ def build():
         for k in range(KF_PER[i]):
             posbegins.append(len(kf_xy))
             pts = xy[i * NF:(i + 1) * NF]
-            lift = (LIFT_PX / PPU) if (i > 0 and k == 0) else 0.0
+            lift = (LIFT_PX * ART_SCALE / PPU) if (i > 0 and k == 0) else 0.0
             flat = []
             for j in range(0, NF, 2):
                 flat += [pts[j], pts[j + 1] - lift]
             kf_xy += flat + [0.0] * (STRIDE - NF)
-            opacities.append(1.0)
+            # --hands none: 手的 drawable 保留在模型里(结构合法), 但透明度设 0 -> 看不见
+            opacities.append(0.0 if (HANDS == "none" and i > 0) else 1.0)
             orders.append(float(i))
     put("keyform_position.xys", kf_xy)
     put("art_mesh_keyform.opacities", opacities)

@@ -57,3 +57,78 @@ python lab\live2d\dl_sample.py          :: 下模型到 build/live2d_sample
 python lab\live2d\l2d_fbo.py            :: 验证渲染
 python lab\live2d\live2d_pet.py         :: 跑桌宠 demo（需要 models/Haru）
 ```
+
+
+---
+
+# BongoCat (vladelaina/BongoCat) 模型适配规则
+
+2026-10-01 实测摸清。**以后给这个应用做模型，照这份走即可。**
+
+## 1. 模型放哪、怎么被认出来
+
+```
+%LOCALAPPDATA%\BongoCat\models\<名字>\     ← 不是安装目录(安装目录的 assets/models 是空的)
+    .bongo-cat-builtin      必须有！否则扫描时整个目录被跳过（源码 model_catalog.c）
+    .bongo-cat-mode         内容写 standard / keyboard / gamepad
+    cat.model3.json         文件名必须叫这个
+    *.moc3  texture_00.png  ...
+    resources/              见第 4 节
+```
+模式判定顺序：`.bongo-cat-mode` 内容 → 目录名 → 有没有 `resources/right-keys/`（有=键盘，没有=Standard）
+
+## 2. 各模式驱动哪些手部参数（从官方三个模型 + app_state.c 反推）
+
+| 模式 | 打字/输入驱动的手部参数 |
+|---|---|
+| keyboard | `CatParamLeftHandDown` / `CatParamRightHandDown` |
+| standard | `Param` / `Param2`（它的动作文件动的就是这两个）|
+| gamepad  | `CatParamStickLeftDown` / `CatParamStickRightDown` + `CatParamStickShowLeft/RightHand` |
+
+鼠标：`ParamMouseX/Y`、`ParamMouseLeftDown/RightDown`。
+**手部参数按模式分开出变体**，别指望一套参数通吃三个模式。
+
+## 3. 拍手靠"播放动作"，不是直接推参数
+
+`app_state.c` 的真实链路：
+
+```
+敲键 -> apply_key() -> bongo_cat_overlay_key(overlay, 键名, pressed)
+                    -> 返回 <0 直接 return（键不在映射表里就什么都不发生）
+                    -> update_hands() 才设置 CatParamLeft/RightHandDown
+```
+- 键位映射表 = **模型目录里的 `resources/left-keys/*.png` + `resources/right-keys/*.png`**（文件名就是键名）
+- 模型还必须自带 `Motions`（官方用组名 `CAT_motion` / `CAT_motion_lock`），应用按组播放
+- **模型没有 `resources/` 或没有动作文件 → 在应用里永远不动**（我们在这上面卡了很久）
+
+## 4. overlay 与画布几何
+
+```
+应用分层:  resources/background.png(桌面/键盘) -> [模型] -> resources/cover.png(桌沿前景)
+           + left-keys/right-keys(键帽高亮, 按下会亮)
+```
+- **模型里只放角色**，桌面/键盘/键帽都交给 overlay（官方模型的 bg 也只有猫本体）
+- 画布几何必须和官方一致才能对齐：**612×354 / origin 居中 / ppu 354**
+- overlay 的**所有图都是"全画布尺寸"**（612×354），不是小图标
+
+## 5. 调位置的两个手段（重要）
+
+| 手段 | 改什么 | 副作用 |
+|---|---|---|
+| ① 改模型坐标 | `ART_OFF_X/Y` | 会同时改变"头顶空间"和"桌沿对齐"；超出余量就切头/悬空 |
+| ② 给 overlay 图补顶 | 每张图顶部加 N 行透明 + 画布高度 +N | **永不破坏对齐**，桌沿跟着走 |
+
+几何约束：`头顶到桌沿 = 657 × 缩放`（本例），而 overlay 桌沿在画布里的高度决定可用空间：
+**桌沿画布 y ≥ 657 × 缩放**，头顶才不会被切。想放大又要头顶完整，就只能用手段 ②。
+
+## 6. 隐藏部件用"透明度"，不要删 drawable
+
+把 drawable 从模型里删掉会让 moc3 结构失效 → **官方 Core 直接崩**（进程无输出退出）。
+正确做法：保留 drawable，把它的关键形透明度 `art_mesh_keyform.opacities` 设 0。
+
+## 7. 其他坑
+
+- `Update()` 每帧会重置参数 → 必须 `Update()` → `SetParamById()` → `Draw()`
+- 关键形位置块要**逐片**补到 16 float 对齐；补在数组末尾会让第 2 片起整体错位
+- `keyform_begin_indices` 是**关键形序号**（当偏移解释会导致 Core 拒载）
+- 打包/发布前用官方 Core 实测加载：`live2d.Model().LoadModelJson(...)`
