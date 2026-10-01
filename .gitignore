@@ -13,3 +13,7 @@ release/*.exe
 
 # 实验用的第三方模型(版权归 Live2D, 只作本地测试)
 models/
+
+# 模型包/素材包也走 GitHub Releases 附件
+release/*.zip
+release/*.7z
