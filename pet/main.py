@@ -74,25 +74,23 @@ def list_skins():
         return []
 
 
-def _alpha_box(pm, pad_l=6, pad_t=6, pad_r=0.12, pad_b=0.12, thresh=20):
+def _alpha_box(pm, pad_l=6, pad_t=6, pad_r=0.12, pad_b=0.12):
     """从 alpha 通道算包围盒并留出余量(够下砸压扁/左右撑开用)。
 
+    用 Qt 自带的 QRegion, 不引 numpy —— numpy 一旦被 import 就会被打进 exe(多 12MB)。
     没有它的话每加一个皮肤都要手填坐标; 想微调在 skin.json 里写 paw_boxes 覆盖即可。
     """
-    import numpy as np
-    img = pm.toImage().convertToFormat(QImage.Format_RGBA8888)
+    from PySide6.QtGui import QBitmap, QRegion
+    img = pm.toImage()
     w, h = img.width(), img.height()
-    raw = img.constBits()
-    buf = raw if isinstance(raw, (bytes, bytearray)) else bytes(raw)
-    stride = img.bytesPerLine()
-    arr = np.frombuffer(buf, np.uint8)
-    if arr.size < stride * h:
+    try:
+        mask = img.createAlphaMask()                  # alpha > 128 转 1bit
+        r = QRegion(QBitmap.fromImage(mask)).boundingRect()
+        x0, y0, x1, y1 = r.left(), r.top(), r.right(), r.bottom()
+    except Exception:
         return (0, 0, w, h)
-    a = arr[:stride * h].reshape(h, stride)[:, :w * 4].reshape(h, w, 4)[..., 3]
-    ys, xs = np.nonzero(a > thresh)
-    if not len(ys):
+    if x1 < x0 or y1 < y0:
         return (0, 0, w, h)
-    x0, x1, y0, y1 = int(xs.min()), int(xs.max()), int(ys.min()), int(ys.max())
     bw, bh = x1 - x0 + 1, y1 - y0 + 1
     return (max(0, int(x0 - pad_l)), max(0, int(y0 - pad_t)),
             min(w, int(x1 + pad_r * bw) + 1), min(h, int(y1 + pad_b * bh) + 1))
@@ -216,8 +214,9 @@ class Pet(QWidget):
     def __init__(self, skin=None, scale=None):
         super().__init__()
         self.cfg = self._load_cfg()
+        # 显式指定的皮肤允许 _ 开头(方便试 _template); 菜单里仍然不显示它们
         self.skin = skin or self.cfg.get("skin") or DEFAULT_SKIN
-        if self.skin not in list_skins():
+        if not os.path.isfile(skin_path(self.skin, "skin.json")):
             self.skin = (list_skins() or [DEFAULT_SKIN])[0]
         load_skin(self.skin)
         self.scale = float(self.cfg.get("scale", scale if scale else SKIN.get("scale", 0.42)))
