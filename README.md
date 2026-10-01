@@ -1,6 +1,6 @@
 # Moon 桌宠（Bongo Cat 式打字反馈）
 
-**当前版本 v2.0.1**（Bongo Cat 版） · [更新日志](CHANGELOG.md) · [下载](https://github.com/shamate-tv/desk_pet_for_Moon_/releases)（取 Releases 里的 `MoonPet-v2.0.1.exe`）
+**当前版本 v2.1.0**（Bongo Cat 版） · [更新日志](CHANGELOG.md) · [下载](https://github.com/shamate-tv/desk_pet_for_Moon_/releases)（取 Releases 里的 `MoonPet-v2.1.0.exe`；另有 `Moon-BongoCat-model.zip` 是给 BongoCat 用的 Live2D 模型包）
 
 一张 OC 插画 → Bongo Cat 式桌宠：**你敲键盘，她就躲在桌子后面左右爪交替拍桌子**，
 整个人跟着往下一沉；空闲时随机眨眼，鼠标点击双爪同砸，鼠标穿透/拖动/托盘菜单齐全。
@@ -232,7 +232,7 @@ python tools\make_live2d.py --bind pad --bg char                 :: gamepad  模
 双击即用；首次启动要解包到临时目录，约 3~6 秒才出现。
 
 **版本号只有一个来源**：`pet/main.py` 顶部的 `VERSION`。打包脚本会读它，自动写进
-exe 的 Windows 属性（右键→属性→详细信息能看到版本号）、并命名成 `MoonPet-v2.0.1.exe`。
+exe 的 Windows 属性（右键→属性→详细信息能看到版本号）、并命名成 `MoonPet-v2.1.0.exe`。
 发新版时改那一行 + 在 `CHANGELOG.md` 加一段即可。
 
 重新打包：

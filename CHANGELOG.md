@@ -34,6 +34,20 @@
 
 用法不变，是向后兼容的功能新增，所以走 minor。
 
+### 附带交付：Moon 的 Live2D 模型包（`Moon-BongoCat-model.zip`）
+
+同一版还多了一样东西 —— 用 `tools/make_live2d.py` 把画师分层的素材**直接编译成 Live2D 模型
+（`.moc3`）**，不走 Cubism Editor，可以导入 [BongoCat](https://github.com/vladelaina/BongoCat)
+这类支持标准 Cubism 3/4 模型的应用。
+
+- 两个变体：`Moon`（standard 模式）/ `MoonKbd`（keyboard 模式），因为两种模式驱动的手部参数不同
+- 模型里只放角色，桌面/键盘/键帽都交给应用的 overlay 画
+- 两只手做成"隐形"（关键形透明度 0）：它们的落点和官方键盘对不齐
+- 尺寸 612×498 画布 / ppu 354 / 1.75 倍；overlay 图统一补顶 144 行给角色留头顶空间
+- 完整的踩坑记录与适配规则见 `lab/live2d/README.md`（模型目录与标记文件、各模式参数名、
+  动作触发链路、画布几何、隐藏部件要用透明度、moc3 格式的几个坑）
+
+
 ## v2.0.1
 
 **素材换成画师手工分层的完整六图层（修掉"爪子让开后露馅"）**
