@@ -1,0 +1,16 @@
+{
+  "name": "Moon",
+  "desc": "原始 OC：左手扶鼠标、右手按键盘",
+  "scale": 0.42,
+  "lift": 30.0,
+  "hover_keep": 1.5,
+  "follow_mouse": true,
+  "press_keys": true,
+  "mouse_dx": [-210.0, 40.0],
+  "mouse_dy": [-40.0, 45.0],
+  "paw_boxes": {
+    "l": [322, 594, 522, 794],
+    "r": [860, 704, 1052, 862]
+  },
+  "eye_box": [494, 490, 920, 680]
+}

@@ -71,11 +71,14 @@ art/                      素材源
   OC.psd                  母版(PSD, 6 个图层) —— 改图只动它
   人物.png 左手.png 右手.png 桌子.png 键盘.png 鼠标垫.png    导出的图层
   BongoCatOC.jpg / 抠图.png   AI 原图 / 去背版
-assets/                   程序实际读取的素材(由 art/ 生成, 已去掉 PS 元数据)
-  bg.png                  场景板 = 桌子+键盘+鼠标垫+人物
-  paw_l.png / paw_r.png   左手 / 右手可动层
-  eyes_closed.png         闭眼补丁
-  keys.json               50 个键位的坐标
+skins/                    皮肤(一套素材 = 一个皮肤, 可运行时切换)
+  moon/                   原始 OC 皮肤
+    skin.json             皮肤配置(名称/缩放/抬爪高度/是否跟随鼠标/是否按键…)
+    bg.png                场景板 = 桌子+键盘+鼠标垫+人物
+    paw_l.png / paw_r.png 左手 / 右手可动层
+    eyes_closed.png       闭眼补丁
+    keys.json             50 个键位的坐标
+  _template/              新皮肤模板(带 _ 前缀, 不出现在菜单里, 复制它改名就能开工)
 pet/
   main.py                 桌宠主程序
 pet.ico                   exe / 托盘图标
@@ -96,6 +99,37 @@ build/                    中间产物 + 验收图(.gitignore 忽略)
 
 > `art/*.png` 从 PS 导出时带了几 MB 的 XMP 编辑历史, 对渲染毫无用处。
 > 跑 `python tools\optimize_assets.py` 可**无损**去掉(逐像素校验), 42MB → 1.2MB。
+
+## 皮肤系统
+
+一套素材就是一个皮肤，运行时能在托盘里切换：
+
+```
+skins/<皮肤名>/
+  skin.json          必须 —— 配置
+  bg.png             必须 —— 场景板(不含爪子)
+  paw_l.png          必须 —— 左爪(原图同尺寸, 位置对齐)
+  paw_r.png          必须 —— 右爪
+  eyes_closed.png    可选 —— 闭眼补丁(不画就不眨眼)
+  keys.json          可选 —— 键位表(不给就只原地砸, 不按对应键)
+```
+
+`skin.json` 常用字段（全部可省，只写想改的）：
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `name` / `desc` | 目录名 | 菜单和文档里显示的名字 |
+| `scale` | 0.42 | 默认缩放，0.5 = 原图一半 |
+| `lift` | 30.0 | 打字时爪子抬起多少像素（原图单位） |
+| `hover_keep` | 1.5 | 停手多少秒后爪子落回桌面 |
+| `follow_mouse` | true | 左爪是否在垫子上跟着鼠标滑 |
+| `press_keys` | true | 右爪是否滑到对应键位（需要 `keys.json`） |
+| `mouse_dx` / `mouse_dy` | — | 跟随鼠标的活动范围（相对原位） |
+| `paw_boxes` | 自动 | 两只爪子的裁剪框；**不写就按 alpha 包围盒自动算**（含余量） |
+| `eye_box` | 自动 | 闭眼补丁裁剪区；不写就按 `eyes_closed.png` 的 alpha 包围盒 |
+
+**加一个新皮肤**：复制 `skins/_template/` 改名（别用 `_` 开头，那会被菜单忽略）→ 放素材 → 改 `skin.json`。
+命令行也可以直接指定：`python pet\main.py --skin bongo`
 
 ## 素材流水线
 

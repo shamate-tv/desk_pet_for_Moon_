@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""生成 assets/keys.json —— 每个键帽在底图上的中心坐标。
+"""生成 skins/moon/keys.json —— 每个键帽在底图上的中心坐标。
 
 做法:
   1. 在干净的键盘层上自适应阈值 + 轮廓筛选, 找出若干键帽中心;
@@ -19,7 +19,7 @@ import os
 from PIL import Image
 
 KB = "art/键盘.png"
-OUT = "assets/keys.json"
+OUT = "skins/moon/keys.json"
 REF = "art/BongoCatOC抠图.png"
 P0 = np.array([879.0, 880.0])        # 锚点: "H" 键中心
 R = np.array([49.5, 10.5])           # +i: 键盘上向右一个键

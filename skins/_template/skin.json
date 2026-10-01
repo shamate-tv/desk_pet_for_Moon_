@@ -1,0 +1,27 @@
+{
+ "_说明": "复制这个目录改名就能当新皮肤。带 _ 前缀的目录不会出现在菜单里。",
+ "name": "皮肤显示名",
+ "desc": "一句话描述(菜单/文档用)",
+ "scale": 0.6,
+ "_scale": "默认缩放, 0.5 = 原图一半",
+ "lift": 26.0,
+ "_lift": "打字时爪子抬离桌面多少像素(原图单位)",
+ "hover_keep": 1.5,
+ "_hover_keep": "停手多少秒后爪子落回桌面",
+ "follow_mouse": false,
+ "_follow_mouse": "左爪是否跟着鼠标在垫子上滑",
+ "press_keys": false,
+ "_press_keys": "右爪是否按对应键位(需要本目录有 keys.json)",
+ "mouse_dx": [
+  -180.0,
+  40.0
+ ],
+ "mouse_dy": [
+  -40.0,
+  45.0
+ ],
+ "_mouse": "跟随鼠标时的活动范围(相对原位, 原图像素)",
+ "_paw_boxes": "可选。不写就自动按 paw_l/paw_r 的 alpha 包围盒算(含余量)",
+ "_eye_box": "可选。闭眼补丁的裁剪区域, 不写就按 eyes_closed.png 的 alpha 包围盒",
+ "_files": "必须: bg.png / paw_l.png / paw_r.png。可选: eyes_closed.png / keys.json"
+}

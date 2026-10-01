@@ -14,7 +14,7 @@ echo Building MoonPet-v%VER%.exe ...
 %PY% -m PyInstaller --noconfirm --onefile --noconsole --name "MoonPet-v%VER%" ^
   --icon "%CD%\pet.ico" ^
   --version-file "%CD%\build\version_info.txt" ^
-  --add-data "%CD%\assets;assets" ^
+  --add-data "%CD%\skins;skins" ^
   --distpath "%CD%\release" ^
   --workpath "%CD%\build\pyi" ^
   --specpath "%CD%\build" ^

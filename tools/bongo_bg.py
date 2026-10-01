@@ -5,10 +5,10 @@ art/ 里的图层(都是 1459x1078 全画布, 位置已对齐, 直接叠就行):
   桌子 / 键盘 / 鼠标垫 / 人物 / 左手 / 右手
 
 产出:
-  assets/bg.png     场景板 = 桌子 + 键盘 + 鼠标垫 + 人物 (不含两只手)
-  assets/paw_l.png  左手可动层
-  assets/paw_r.png  右手可动层
-  assets/eyes_closed.png  闭眼补丁(用原画线宽合成, 见 tools/bongo_cut.py)
+  skins/moon/bg.png     场景板 = 桌子 + 键盘 + 鼠标垫 + 人物 (不含两只手)
+  skins/moon/paw_l.png  左手可动层
+  skins/moon/paw_r.png  右手可动层
+  skins/moon/eyes_closed.png  闭眼补丁(用原画线宽合成, 见 tools/bongo_cut.py)
 
 叠放顺序已验证: 六层叠加与 art/BongoCatOC抠图.png 在"两者都实心"的像素上平均差 2.39,
 差异>30 的仅 1.8%(都在边缘抗锯齿处), 可视为完美还原。
@@ -18,13 +18,14 @@ import numpy as np
 from PIL import Image
 
 BG_LAYERS = ["桌子", "键盘", "鼠标垫", "人物"]      # 从下到上
-OUT_BG = "assets/bg.png"
+OUT_DIR = "skins/moon"                      # 组装结果直接进皮肤目录
+OUT_BG = os.path.join(OUT_DIR, "bg.png")
 HANDS = {"l": "左手", "r": "右手"}
 SRC = "art/BongoCatOC抠图.png"
 
 
 def main():
-    os.makedirs("assets", exist_ok=True)
+    os.makedirs(OUT_DIR, exist_ok=True)
     size = Image.open("art/桌子.png").size
 
     bg = Image.new("RGBA", size, (0, 0, 0, 0))
@@ -34,11 +35,11 @@ def main():
 
     for side, name in HANDS.items():
         im = Image.open("art/%s.png" % name).convert("RGBA")
-        im.save("assets/paw_%s.png" % side)
+        im.save(os.path.join(OUT_DIR, "paw_%s.png" % side))
         a = np.array(im)[..., 3]
         ys, xs = np.nonzero(a > 20)
-        print("%s -> assets/paw_%s.png  bbox x %d-%d y %d-%d (%d px)"
-              % (name, side, xs.min(), xs.max(), ys.min(), ys.max(), (a > 20).sum()))
+        print("%s -> %s/paw_%s.png  bbox x %d-%d y %d-%d (%d px)"
+              % (name, OUT_DIR, side, xs.min(), xs.max(), ys.min(), ys.max(), (a > 20).sum()))
 
     # 审核图: 原图 | 场景板+两只手 的三层对照
     def flat(im):
@@ -57,7 +58,7 @@ def main():
     for i, t in enumerate(tiles):
         sheet.paste(t, (i * (tiles[0].width + 8), 0))
     sheet.save("build/review_scene.png")
-    print("assets/bg.png ok  ->  build/review_scene.png (原图 | 场景板 | 场景板+双手)")
+    print("skins/moon/ ok  ->  build/review_scene.png (原图 | 场景板 | 场景板+双手)")
 
 
 if __name__ == "__main__":
